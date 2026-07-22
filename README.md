@@ -6,7 +6,7 @@
 
 ## The Problem
 
-Out-of-the-box Alfresco Content Services has a **~1 GB download ceiling** for single files. This limitation was documented at [Alfresco DevCon 2018](https://www.slideshare.net/alfresco/moving-gigantic-files-in-and-out-of-the-repository): downloads of large files fail because ACS allocates the entire file in heap memory, causing an out-of-memory exception around 1 GB.
+Out-of-the-box Alfresco Content Services has a **~1 GB download ceiling** for single files. This limitation was documented at [Alfresco DevCon 2018](https://www.slideshare.net/slideshow/moving-gigantic-files-into-and-out-of-the-alfresco-repository/86521045): downloads of large files fail because ACS allocates the entire file in heap memory, causing an out-of-memory exception around 1 GB.
 
 This affects users working with:
 
