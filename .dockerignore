@@ -1,0 +1,29 @@
+# The deployment/ images build with the repo root as context. Keep the build
+# context small and reproducible: exclude host build outputs, dependencies and
+# VCS/editor cruft. Each Docker stage installs/builds what it needs from source.
+
+.git
+.github
+.circleci
+.vscode
+.idea
+.claude
+.DS_Store
+
+# ACA — let the in-Docker stage run npm install / nx build from source.
+aca/node_modules
+aca/dist
+aca/.angular
+aca/.nx
+aca/nxcache
+aca/out-tsc
+aca/coverage
+aca/e2e
+aca/e2e-output
+
+# Library mirror deliverable (the compiled copy lives under aca/projects/).
+adf-download-manager/dist
+adf-download-manager/node_modules
+
+# Docs / planning that no image needs.
+**/*.log

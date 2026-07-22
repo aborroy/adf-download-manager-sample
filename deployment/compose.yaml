@@ -1,0 +1,236 @@
+# ADF Download Manager — local test stack (ACS Community + custom ACA)
+#
+# Based on the official ACS community compose:
+#   https://github.com/Alfresco/acs-deployment/blob/master/docker-compose/community-compose.yaml
+#
+# Differences from the upstream template, all in service of testing the
+# ADF Download Manager with large files:
+#
+#   1. alfresco FETCHES the prebuilt repository streaming addon JAR from its
+#      release on GitHub (https://github.com/aborroy/alfresco-download-streaming-repo)
+#      and bakes it into the ACS image (defeats the ~1 GB ACS download ceiling).
+#   2. content-app BUILDS this repo's ACA (../aca) end-to-end in-Docker, so it
+#      ships the adf-download-manager extension. No host `nx build` needed.
+#   3. The Traefik proxy STREAMS request/response bodies (no buffering
+#      middleware). The upstream template buffers up to 5 GB in Traefik RAM,
+#      which OOM-kills the proxy on multi-GB uploads.
+#   4. ACS is configured with no content-size limit.
+#   5. Generous proxy timeouts (1 h) for slow multi-GB transfers.
+#
+# The ACA image builds inside Docker from the repo root; the ACS image just
+# downloads the addon JAR, so the whole stack starts with ONE command — no
+# prior Maven/npm/nx steps. The first build is slow (downloads deps + compiles
+# the SPA); later runs are cached.
+#
+# Requires ~7 GB of memory available to Docker, plus enough disk for your
+# test files in the alfresco content volume.
+#
+# ── Quick start ──────────────────────────────────────────────────────────────
+#   cd deployment
+#   docker compose up --build -d     # builds the addon + ACA and starts everything
+#   open http://localhost:8080       # admin / admin
+# ------------------------------------------------------------------------------
+
+services:
+  alfresco:
+    # Fetches the streaming download addon JAR from its GitHub release and
+    # bakes it into the ACS image. See deployment/alfresco/Dockerfile.
+    build:
+      context: ..
+      dockerfile: deployment/alfresco/Dockerfile
+      args:
+        ACS_TAG: ${ACS_TAG:-26.1.0}
+    image: adf-download-manager/alfresco-with-addon:local
+    mem_limit: ${ALFRESCO_MEM:-1900m}
+    environment:
+      JAVA_TOOL_OPTIONS: >-
+        -Dencryption.keystore.type=JCEKS
+        -Dencryption.cipherAlgorithm=DESede/CBC/PKCS5Padding
+        -Dencryption.keyAlgorithm=DESede
+        -Dencryption.keystore.location=/usr/local/tomcat/shared/classes/alfresco/extension/keystore/keystore
+        -Dmetadata-keystore.password=mp6yc0UD9e
+        -Dmetadata-keystore.aliases=metadata
+        -Dmetadata-keystore.metadata.password=oKIWzVdEdA
+        -Dmetadata-keystore.metadata.algorithm=DESede
+      JAVA_OPTS: >-
+        -Ddb.driver=org.postgresql.Driver
+        -Ddb.username=alfresco
+        -Ddb.password=alfresco
+        -Ddb.url=jdbc:postgresql://postgres:5432/alfresco
+        -Dsolr.host=solr6
+        -Dsolr.port=8983
+        -Dsolr.http.connection.timeout=1000
+        -Dsolr.secureComms=secret
+        -Dsolr.sharedSecret=secret
+        -Dsolr.base.url=/solr
+        -Dindex.subsystem.name=solr6
+        -Dalfresco.host=localhost
+        -Dalfresco.port=8080
+        -Dcsrf.filter.enabled=false
+        -Dmessaging.broker.url="failover:(nio://activemq:61616)?timeout=3000&jms.useCompression=true"
+        -Dmessaging.broker.username=admin
+        -Dmessaging.broker.password=admin
+        -Ddeployment.method=DOCKER_COMPOSE
+        -DlocalTransform.core-aio.url=http://transform-core-aio:8090/
+        -Dsystem.content.maximumFileSizeLimit=0
+        -Dalfresco.restApi.basicAuthScheme=true
+        -XX:MinRAMPercentage=50
+        -XX:MaxRAMPercentage=80
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/alfresco/api/-default-/public/alfresco/versions/1/probes/-ready-"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 1m
+    volumes:
+      - alf-content:/usr/local/tomcat/alf_data
+    labels:
+      - "traefik.enable=true"
+      # Repository REST API + download/upload endpoints. No buffering middleware:
+      # Traefik streams the body straight through, so multi-GB transfers do not
+      # accumulate in proxy memory.
+      - "traefik.http.routers.alfresco.rule=PathPrefix(`/alfresco`)"
+      - "traefik.http.routers.alfresco.priority=20"
+      - "traefik.http.services.alfresco.loadbalancer.server.port=8080"
+      # Deny external access to the Solr admin API (parity with upstream hardening)
+      - "traefik.http.routers.solrapideny.rule=PathRegexp(`^/alfresco/(wc)?s(ervice)?/api/solr/.*$$`)"
+      - "traefik.http.routers.solrapideny.priority=30"
+      - "traefik.http.middlewares.acsfakeauth.basicauth.users=fake:"
+      - "traefik.http.routers.solrapideny.middlewares=acsfakeauth@docker"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      activemq:
+        condition: service_healthy
+
+  transform-core-aio:
+    image: alfresco/alfresco-transform-core-aio:${TRANSFORM_TAG:-5.4.2}
+    mem_limit: ${TRANSFORM_MEM:-1536m}
+    environment:
+      JAVA_OPTS: >-
+        -XX:MinRAMPercentage=50
+        -XX:MaxRAMPercentage=80
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/ready"]
+      interval: 20s
+      timeout: 2s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      activemq:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:${POSTGRES_TAG:-17.9}
+    mem_limit: ${POSTGRES_MEM:-512m}
+    environment:
+      - POSTGRES_PASSWORD=alfresco
+      - POSTGRES_USER=alfresco
+      - POSTGRES_DB=alfresco
+    command: postgres -c max_connections=300 -c log_min_messages=LOG
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  solr6:
+    image: docker.io/alfresco/alfresco-search-services:${SOLR_TAG:-2.0.20}
+    mem_limit: ${SOLR_MEM:-2g}
+    environment:
+      SOLR_ALFRESCO_HOST: "alfresco"
+      SOLR_ALFRESCO_PORT: "8080"
+      SOLR_SOLR_HOST: "solr6"
+      SOLR_SOLR_PORT: "8983"
+      SOLR_CREATE_ALFRESCO_DEFAULTS: "alfresco,archive"
+      ALFRESCO_SECURE_COMMS: "secret"
+      JAVA_TOOL_OPTIONS: >-
+        -Dalfresco.secureComms.secret=secret
+    volumes:
+      - solr-data:/opt/alfresco-search-services/data
+
+  activemq:
+    image: docker.io/alfresco/alfresco-activemq:${ACTIVEMQ_TAG:-6.2.6-jre17-rockylinux8}
+    mem_limit: ${ACTIVEMQ_MEM:-1g}
+    environment:
+      - ACTIVEMQ_ADMIN_LOGIN=admin
+      - ACTIVEMQ_ADMIN_PASSWORD=admin
+    ports:
+      - "8161:8161" # Web Console (admin/admin)
+    healthcheck:
+      test: ["CMD", "/opt/activemq/bin/activemq", "query", "--objname", "type=Broker,brokerName=*,service=Health", "|", "grep", "Good"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Our ACA build (ships the adf-download-manager extension), built end-to-end
+  # in-Docker from ../aca — no host `nx build` needed. See deployment/aca/Dockerfile.
+  content-app:
+    build:
+      context: ..
+      dockerfile: deployment/aca/Dockerfile
+    image: adf-download-manager/content-app:local
+    mem_limit: ${ACA_MEM:-256m}
+    environment:
+      BASE_PATH: /
+      APP_BASE_SHARE_URL: "http://localhost:8080/#/preview/s"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      # Catch-all (lowest priority) — everything not matched by /alfresco or
+      # /share is served by the SPA at the proxy root.
+      - "traefik.http.routers.aca.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.aca.priority=1"
+      - "traefik.http.services.aca.loadbalancer.server.port=8080"
+
+  proxy:
+    image: traefik:${TRAEFIK_TAG:-3.6}
+    mem_limit: ${PROXY_MEM:-256m}
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--entrypoints.web.address=:8080"
+      # Dashboard entrypoint must be set explicitly to :8888 — with
+      # --api.insecure=true Traefik otherwise defaults it to :8080 and
+      # collides with the web entrypoint ("address already in use").
+      - "--entrypoints.traefik.address=:8888"
+      # Long timeouts so slow multi-GB transfers are not cut off.
+      - "--entrypoints.web.transport.respondingTimeouts.readTimeout=3600s"
+      - "--entrypoints.web.transport.respondingTimeouts.writeTimeout=3600s"
+      - "--entrypoints.web.transport.respondingTimeouts.idleTimeout=3600s"
+      - "--accesslog=true"
+      - "--ping=true"
+      - "--ping.entrypoint=web"
+    ports:
+      - "8080:8080" # ACA + ACS, both behind the proxy
+      - "8888:8888" # Traefik dashboard (insecure, local only)
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    security_opt:
+      - label=disable # Required for Docker socket access on SELinux systems
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      alfresco:
+        condition: service_healthy
+      content-app:
+        condition: service_healthy
+
+volumes:
+  alf-content:
+  db-data:
+  solr-data:

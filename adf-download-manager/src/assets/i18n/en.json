@@ -1,0 +1,82 @@
+{
+    "ADF_DOWNLOAD_MANAGER": {
+        "PANEL": {
+            "TITLE": "Downloads",
+            "EMPTY": "No downloads yet."
+        },
+        "SIDEBAR": {
+            "TITLE": "Downloads"
+        },
+        "ACTIONS": {
+            "DOWNLOAD_FILE": "Add to Download Manager",
+            "DOWNLOAD_SELECTION": "Download as ZIP (Managed)",
+            "DOWNLOAD_FOLDER": "Download Folder (Managed)",
+            "OPEN_PANEL": "Open Download Manager",
+            "PAUSE": "Pause",
+            "PAUSE_ALL": "Pause all",
+            "RESUME": "Resume",
+            "RESUME_ALL": "Resume all",
+            "CANCEL": "Cancel",
+            "RETRY": "Retry",
+            "RESTART": "Restart download",
+            "CLEAR_COMPLETED": "Clear completed",
+            "CLOSE": "Close"
+        },
+        "STATUS": {
+            "QUEUED": "Queued",
+            "ACTIVE": "Downloading…",
+            "PAUSED": "Paused",
+            "RETRYING": "Retrying",
+            "PREPARING_ZIP": "Preparing ZIP",
+            "COMPLETED": "Completed",
+            "FAILED": "Failed",
+            "CANCELLED": "Cancelled"
+        },
+        "ERRORS": {
+            "NO_PERMISSION": "You do not have permission to download this file.",
+            "FILE_CHANGED": "The file has changed and cannot be resumed safely. Cancel and retry.",
+            "SESSION_EXPIRED": "Session expired — please log in again.",
+            "NETWORK_ERROR": "Network error — retrying…",
+            "RESUME_UNSUPPORTED": "Pause and resume are not supported for this file.",
+            "PAUSE_UNSUPPORTED": "Pause is not available — server does not support Range requests.",
+            "SIZE_EXCEEDED": "Download blocked: file exceeds the maximum allowed size.",
+            "STORAGE_FULL": "Not enough local storage to complete this download.",
+            "NOT_FOUND": "This file could not be found on the server.",
+            "RANGE_REQUIRED": "This file is too large to download from a server that does not support resumable (Range) requests.",
+            "UNKNOWN": "An unexpected error occurred."
+        }
+    },
+    "ADF_UPLOAD_MANAGER": {
+        "PANEL": {
+            "TITLE": "Uploads",
+            "EMPTY": "No uploads yet."
+        },
+        "ACTIONS": {
+            "UPLOAD_FILES": "Upload files",
+            "OPEN_PANEL": "Uploads",
+            "PAUSE": "Pause",
+            "PAUSE_ALL": "Pause all",
+            "RESUME": "Resume",
+            "RESUME_ALL": "Resume all",
+            "CANCEL": "Cancel",
+            "RETRY": "Retry",
+            "CLEAR_COMPLETED": "Clear completed"
+        },
+        "STATUS": {
+            "QUEUED": "Queued",
+            "ACTIVE": "Uploading…",
+            "PAUSED": "Paused",
+            "RETRYING": "Retrying",
+            "COMPLETED": "Uploaded",
+            "FAILED": "Failed",
+            "CANCELLED": "Cancelled"
+        },
+        "ERRORS": {
+            "NO_PERMISSION": "You do not have permission to upload here.",
+            "CONFLICT": "A file with this name already exists.",
+            "SESSION_EXPIRED": "Session expired — please log in again.",
+            "NETWORK_ERROR": "Network error — retrying…",
+            "UNKNOWN": "An unexpected error occurred."
+        }
+    }
+}

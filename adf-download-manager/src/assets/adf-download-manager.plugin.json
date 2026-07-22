@@ -1,0 +1,140 @@
+{
+  "$id": "adf-download-manager",
+  "$version": "1.0.0",
+  "$name": "ADF Download Manager",
+  "$vendor": "Alfresco",
+  "$license": "Apache-2.0",
+
+  "actions": [
+    {
+      "id": "adf-download-manager.download-file",
+      "type": "ADF_DOWNLOAD_MANAGER_DOWNLOAD_FILE",
+      "payload": "$(context.selection.first.entry)"
+    },
+    {
+      "id": "adf-download-manager.download-selection",
+      "type": "ADF_DOWNLOAD_MANAGER_DOWNLOAD_SELECTION",
+      "payload": "$(context.selection.nodes)"
+    },
+    {
+      "id": "adf-download-manager.download-folder",
+      "type": "ADF_DOWNLOAD_MANAGER_DOWNLOAD_FOLDER",
+      "payload": "$(context.selection.first.entry)"
+    },
+    {
+      "id": "adf-download-manager.open-panel",
+      "type": "ADF_DOWNLOAD_MANAGER_OPEN_PANEL"
+    },
+    {
+      "id": "adf-download-manager.open-upload-panel",
+      "type": "ADF_DOWNLOAD_MANAGER_OPEN_UPLOAD_PANEL"
+    }
+  ],
+
+  "features": {
+    "navbar": [
+      {
+        "id": "app.navbar.secondary",
+        "items": [
+          {
+            "id": "adf-download-manager.navbar.downloads",
+            "order": 200,
+            "component": "adf-download-manager.navbar.downloads"
+          },
+          {
+            "id": "adf-download-manager.navbar.uploads",
+            "order": 201,
+            "component": "adf-download-manager.navbar.uploads"
+          }
+        ]
+      }
+    ],
+    "toolbar": [
+      {
+        "id": "app.toolbar.more",
+        "children": [
+          {
+            "id": "adf-download-manager.toolbar.download-file",
+            "order": 100,
+            "icon": "download_for_offline",
+            "title": "ADF_DOWNLOAD_MANAGER.ACTIONS.DOWNLOAD_FILE",
+            "actions": { "click": "adf-download-manager.download-file" },
+            "rules": { "visible": ["app.selection.file"] }
+          },
+          {
+            "id": "adf-download-manager.toolbar.download-selection",
+            "order": 101,
+            "icon": "download_for_offline",
+            "title": "ADF_DOWNLOAD_MANAGER.ACTIONS.DOWNLOAD_SELECTION",
+            "actions": { "click": "adf-download-manager.download-selection" },
+            "rules": { "visible": ["app.selection.notEmpty"] }
+          },
+          {
+            "id": "adf-download-manager.toolbar.download-folder",
+            "order": 102,
+            "icon": "download_for_offline",
+            "title": "ADF_DOWNLOAD_MANAGER.ACTIONS.DOWNLOAD_FOLDER",
+            "actions": { "click": "adf-download-manager.download-folder" },
+            "rules": { "visible": ["app.selection.folder"] }
+          },
+          {
+            "id": "adf-download-manager.toolbar.open-panel",
+            "order": 200,
+            "icon": "download_for_offline",
+            "title": "ADF_DOWNLOAD_MANAGER.ACTIONS.OPEN_PANEL",
+            "actions": { "click": "adf-download-manager.open-panel" },
+            "rules": { "visible": [] }
+          },
+          {
+            "id": "adf-download-manager.toolbar.open-upload-panel",
+            "order": 201,
+            "icon": "upload_file",
+            "title": "ADF_UPLOAD_MANAGER.ACTIONS.OPEN_PANEL",
+            "actions": { "click": "adf-download-manager.open-upload-panel" },
+            "rules": { "visible": [] }
+          }
+        ]
+      }
+    ],
+
+    "contextMenu": [
+      {
+        "id": "adf-download-manager.context.download-file",
+        "order": 100,
+        "icon": "download_for_offline",
+        "title": "ADF_DOWNLOAD_MANAGER.ACTIONS.DOWNLOAD_FILE",
+        "actions": { "click": "adf-download-manager.download-file" },
+        "rules": { "visible": ["app.selection.file"] }
+      },
+      {
+        "id": "adf-download-manager.context.download-folder",
+        "order": 101,
+        "icon": "download_for_offline",
+        "title": "ADF_DOWNLOAD_MANAGER.ACTIONS.DOWNLOAD_FOLDER",
+        "actions": { "click": "adf-download-manager.download-folder" },
+        "rules": { "visible": ["app.selection.folder"] }
+      }
+    ],
+
+    "sidebar": {
+      "tabs": [
+        {
+          "id": "adf-download-manager.sidebar-tab",
+          "order": 300,
+          "title": "ADF_DOWNLOAD_MANAGER.SIDEBAR.TITLE",
+          "icon": "download_for_offline",
+          "component": "adf-download-manager.panel",
+          "rules": { "parameters": [] }
+        },
+        {
+          "id": "adf-download-manager.upload-sidebar-tab",
+          "order": 301,
+          "title": "ADF_UPLOAD_MANAGER.PANEL.TITLE",
+          "icon": "upload_file",
+          "component": "adf-download-manager.upload-panel",
+          "rules": { "parameters": [] }
+        }
+      ]
+    }
+  }
+}
